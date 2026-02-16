@@ -2,6 +2,7 @@ using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GridContainer : MonoBehaviour
 {
@@ -12,15 +13,17 @@ public class GridContainer : MonoBehaviour
     private List<GameObject> spawnedCubes = new List<GameObject>();
     private bool isMoving = false;
     private GameObject[,] gridMap = new GameObject[4, 4];
+
+    //private MenuManager menuManager;
     void Start()
     {
+        //menuManager = new MenuManager();
         //Spawn 2 cubes
         for (int i = 0; i < 2; i++)
         {
             SpawnNewTile();
         }
     }
-
     private void Update()
     {
         if (isMoving) return;
@@ -30,6 +33,7 @@ public class GridContainer : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.DownArrow)) StartCoroutine(HandleMove(Vector2Int.down));
         else if (Input.GetKeyDown(KeyCode.RightArrow)) StartCoroutine(HandleMove(Vector2Int.left));
         else if (Input.GetKeyDown(KeyCode.LeftArrow)) StartCoroutine(HandleMove(Vector2Int.right));
+
     }
 
     private IEnumerator HandleMove(Vector2Int direction)
@@ -54,6 +58,13 @@ public class GridContainer : MonoBehaviour
         if (boardChanged)
         {
             SpawnNewTile();
+
+            if (!IsGameOver())
+            {
+                Debug.Log("Game Over!");
+                //menuManager.gameOverCase();
+                MenuManager.Instance.gameOverCase();
+            }
         }
 
         isMoving = false;
@@ -92,6 +103,12 @@ public class GridContainer : MonoBehaviour
                     
                     neighborTile.MergeWith(currentTile);
                     merged = true;
+
+                    if(neighborTile.CurrentLevel == TileLevel.TwentyFortyEight)
+                    {
+                        Debug.Log("You won!");
+                        MenuManager.Instance.WinningCase();
+                    }
                 }
                 break;
             }
@@ -108,10 +125,34 @@ public class GridContainer : MonoBehaviour
             AnimateToPosition(currentCube, finalX, finalY);
             return true;
         }
-
         return merged;
     }
 
+    private bool IsGameOver()
+    {
+        for (int x = 0; x < 4; x++)
+        {
+            for (int y = 0; y < 4; y++)
+            {
+                if (gridMap[x, y] == null) return true; //This mean there is a empty space
+
+                Tile current = gridMap[x, y].GetComponent<Tile>();
+
+                //Check right neighbor
+                if (x < 3 && gridMap[x + 1, y] != null)
+                {
+                    if (current.CurrentLevel == gridMap[x + 1, y].GetComponent<Tile>().CurrentLevel) return true;
+                }
+
+                //check down neighbor
+                if(y<3 &&  gridMap[x, y + 1] != null)
+                {
+                    if (current.CurrentLevel == gridMap[x, y + 1].GetComponent<Tile>().CurrentLevel) return true;
+                }
+            }
+        }
+        return false;
+    }
     private void AnimateToPosition(GameObject cube, int gridX, int gridY)
     {
         // IDK why camera/view is inverted, thats why i add 3-gridX
